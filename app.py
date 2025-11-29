@@ -3,8 +3,12 @@ import streamlit as st
 import pandas as pd
 from fredapi import Fred
 import plotly.express as px
+import plotly.graph_objects as go
 from datetime import date
 import os
+
+# Create figure
+fig = go.Figure()
 
 st.set_page_config(page_title="Federal Funds Rate", layout="wide")
 st.title("Federal Funds Rate (FEDFUNDS) — Historical")
@@ -35,8 +39,37 @@ def load_fred_series(series_id, start, end):
 df = load_fred_series("FEDFUNDS", start.isoformat(), end.isoformat())
 
 # Plot chart
-fig = px.line(df, x="date", y="Federal Funds Rate", title="Federal Funds Rate (Effective)", markers=True)
-fig.update_layout(yaxis_title="Percent (%)", xaxis_title="Date", hovermode="x unified")
+#fig = px.line(df, x="date", y="Federal Funds Rate", title="Federal Funds Rate (Effective)", markers=True)
+#fig.update_layout(yaxis_title="Percent (%)", xaxis_title="Date", hovermode="x unified")
+#st.plotly_chart(fig, use_container_width=True)
+
+# Add Federal Funds Rate line
+fig.add_trace(go.Scatter(
+    x=df["date"],
+    y=df["Federal Funds Rate"],
+    mode="lines+markers",
+    name="Federal Funds Rate",
+    line=dict(color="blue")
+))
+
+# Add Unemployment Rate line
+fig.add_trace(go.Scatter(
+    x=df["date"],
+    y=df["Unemployment Rate"],
+    mode="lines+markers",
+    name="Unemployment Rate",
+    line=dict(color="red")
+))
+
+# Update layout
+fig.update_layout(
+    title="Federal Funds Rate and Unemployment Rate",
+    xaxis_title="Date",
+    yaxis_title="Percent (%)",
+    hovermode="x unified"
+)
+
+# Display in Streamlit
 st.plotly_chart(fig, use_container_width=True)
 
 # Show latest data and CSV download
