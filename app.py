@@ -350,14 +350,9 @@ selected_series = st.multiselect(
 use_zscore = st.checkbox("Normalize using Z-score (standardization)", value=False)
 
 # --- Load Data with error handling ---
+# Load series with try/except
 df_list = []
-for var in selected_series:
-    series_id = series_map[region][var]
-    df_temp = load_fred_series(series_id, start.isoformat(), end.isoformat())
-    df_temp.rename(columns={"Value": var}, inplace=True)
-    df_list.append(df_temp)
 failed_series = []
-
 for var in selected_series:
     series_id = series_map[region][var]
     try:
@@ -367,42 +362,35 @@ for var in selected_series:
     except ValueError as e:
         failed_series.append(f"{var} ({series_id}): {e}")
 
-if use_zscore:
-    df_z = df.copy()
-    for col in df.columns:
-        if col != "date":
-            df_z[col] = (df_z[col] - df_z[col].mean()) / df_z[col].std()
-    df_to_plot = df_z
-else:
-    df_to_plot = df
-
-
-# Notify user about failed series
-if failed_series:
-    st.warning("Some series could not be loaded:")
-    for msg in failed_series:
-        st.write(msg)
-
 # Merge all successfully loaded series
 if df_list:
-    from functools import reduce
     df = reduce(lambda left, right: pd.merge(left, right, on="date", how="outer"), df_list)
     df = df.sort_values("date")
 else:
     st.error("No data available for the selected series and date range.")
     st.stop()
 
-# --- Plot Selected Series ---
+# Apply Z-score if requested
+if use_zscore:
+    df_to_plot = df.copy()
+    for col in df.columns:
+        if col != "date":
+            df_to_plot[col] = (df_to_plot[col] - df_to_plot[col].mean()) / df_to_plot[col].std()
+else:
+    df_to_plot = df
+
+# Plot using df_to_plot
 fig = go.Figure()
 colors = ["blue", "red", "green", "orange", "purple", "brown", "pink", "cyan"]
 for i, series in enumerate(selected_series):
-    fig.add_trace(go.Scatter(
-        x=df["date"],
-        y=df[series],
-        mode="lines+markers",
-        name=series,
-        line=dict(color=colors[i % len(colors)])
-    ))
+    if series in df_to_plot.columns:  # safe check
+        fig.add_trace(go.Scatter(
+            x=df_to_plot["date"],
+            y=df_to_plot[series],
+            mode="lines+markers",
+            name=series,
+            line=dict(color=colors[i % len(colors)])
+        ))
 
 fig.update_layout(
     title=f"Economic Indicators ({region})",
@@ -412,3 +400,9 @@ fig.update_layout(
 )
 
 st.plotly_chart(fig, use_container_width=True)
+
+# Notify user about failed series
+if failed_series:
+    st.warning("Some series could not be loaded:")
+    for msg in failed_series:
+        st.write(msg)
