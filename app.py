@@ -236,3 +236,173 @@ if st.button("Download FRED Metadata"):
         mime="text/csv"
     )
 
+"""TESTING"""
+
+
+# --- Streamlit Page Setup ---
+st.set_page_config(page_title="Economic Dashboard", layout="wide")
+st.title("Economic Indicators Dashboard")
+
+# --- FRED API key ---
+fred_key = st.secrets["FRED"]["Key"]
+fred = Fred(api_key=fred_key)
+
+# --- Function to load FRED series ---
+@st.cache_data(ttl=3600)
+def load_fred_series(series_id, start, end):
+    s = fred.get_series(series_id, observation_start=start, observation_end=end)
+    df = s.to_frame(name="Value").reset_index()
+    df.rename(columns={"index": "date"}, inplace=True)
+    df["date"] = pd.to_datetime(df["date"])
+    return df
+
+# --- Function to pull full FRED metadata ---
+def get_all_fred_metadata(api_key):
+    base = "https://api.stlouisfed.org/fred"
+    headers = {"Authorization": f"Bearer {api_key}"}
+    all_data = []
+
+    root_id = 0
+    categories_to_visit = [root_id]
+    visited = set()
+
+    while categories_to_visit:
+        cat = categories_to_visit.pop()
+        if cat in visited:
+            continue
+        visited.add(cat)
+
+        series_url = f"{base}/category/series?category_id={cat}&file_type=json"
+        r = requests.get(series_url, headers=headers).json()
+        if "seriess" in r:
+            for s in r["seriess"]:
+                all_data.append({
+                    "id": s.get("id"),
+                    "title": s.get("title"),
+                    "units": s.get("units"),
+                    "frequency": s.get("frequency"),
+                    "seasonal_adjustment": s.get("seasonal_adjustment"),
+                    "last_updated": s.get("last_updated"),
+                    "notes": s.get("notes")
+                })
+
+        children_url = f"{base}/category/children?category_id={cat}&file_type=json"
+        r = requests.get(children_url, headers=headers).json()
+        if "categories" in r:
+            for c in r["categories"]:
+                categories_to_visit.append(c["id"])
+
+    return pd.DataFrame(all_data)
+
+# --- Date Selection ---
+start_default = "2000-01-01"
+end_default = date.today().isoformat()
+start = st.date_input("Start date", pd.to_datetime(start_default))
+end = st.date_input("End date", pd.to_datetime(end_default))
+if start > end:
+    st.error("Start date must be before end date.")
+    st.stop()
+
+# --- Region and City Selection ---
+region = st.selectbox("Select region:", ["National", "Missouri", "Kansas"])
+
+city_map = {
+    "Missouri": {
+        "St. Louis Metro": "STLMUR",  # replace with exact FRED code
+        "Kansas City Metro (MO side)": "KCMOMUR"
+    },
+    "Kansas": {
+        "Kansas City Metro (KS side)": "KCKSUR",
+        "Wichita, KS": "WICHUR"
+    }
+}
+
+selected_city = "None"
+if region in ["Missouri", "Kansas"]:
+    selected_city = st.selectbox(
+        f"Select city/metro area in {region} (optional)",
+        options=["None"] + list(city_map[region].keys())
+    )
+
+# --- Map Variables to Series IDs ---
+series_map = {
+    "National": {
+        "Federal Funds Rate": "FEDFUNDS",
+        "Unemployment Rate": "UNRATE",
+        "GDP Growth %": "GDPC1",
+        "Inflation %": "CPIAUCNS"
+    },
+    "Missouri": {
+        "Federal Funds Rate": "FEDFUNDS",
+        "Unemployment Rate": "MISSOURIUR",
+        "GDP Growth %": "GDPC1",
+        "Inflation %": "CPIAUCNS"
+    },
+    "Kansas": {
+        "Federal Funds Rate": "FEDFUNDS",
+        "Unemployment Rate": "KANSASUR",
+        "GDP Growth %": "GDPC1",
+        "Inflation %": "CPIAUCNS"
+    }
+}
+
+# --- Determine unemployment series based on city selection ---
+if selected_city != "None":
+    unemp_series = city_map[region][selected_city]
+else:
+    unemp_series = series_map[region]["Unemployment Rate"]
+
+# --- Load Data ---
+df_fed = load_fred_series(series_map[region]["Federal Funds Rate"], start.isoformat(), end.isoformat())
+df_unemp = load_fred_series(unemp_series, start.isoformat(), end.isoformat())
+df_unemp.rename(columns={"Value": "Unemployment Rate"}, inplace=True)
+
+df_gdp = load_fred_series(series_map[region]["GDP Growth %"], start.isoformat(), end.isoformat())
+df_gdp.rename(columns={"Value": "Real GDP"}, inplace=True)
+df_gdp["GDP Growth %"] = df_gdp["Real GDP"].pct_change(periods=4) * 100
+
+df_cpi = load_fred_series(series_map[region]["Inflation %"], start.isoformat(), end.isoformat())
+df_cpi.rename(columns={"Value": "CPI"}, inplace=True)
+df_cpi["Inflation %"] = df_cpi["CPI"].pct_change(periods=12) * 100
+
+# --- Merge all series ---
+df = df_fed.rename(columns={"Value": "Federal Funds Rate"})
+df = pd.merge(df, df_unemp, on="date", how="outer")
+df = pd.merge(df, df_gdp[["date", "GDP Growth %"]], on="date", how="outer")
+df = pd.merge(df, df_cpi[["date", "Inflation %"]], on="date", how="outer")
+df = df.sort_values("date")
+
+# --- Interactive Series Selection ---
+series_options = ["Federal Funds Rate", "Unemployment Rate", "GDP Growth %", "Inflation %"]
+selected_series = st.multiselect(
+    "Select series to display on the chart:",
+    options=series_options,
+    default=["Federal Funds Rate", "Unemployment Rate"]
+)
+
+# --- Plot Selected Series ---
+fig = go.Figure()
+colors = {
+    "Federal Funds Rate": "blue",
+    "Unemployment Rate": "red",
+    "GDP Growth %": "green",
+    "Inflation %": "orange"
+}
+
+for series in selected_series:
+    fig.add_trace(go.Scatter(
+        x=df["date"],
+        y=df[series],
+        mode="lines+markers",
+        name=series,
+        line=dict(color=colors[series])
+    ))
+
+fig.update_layout(
+    title=f"Economic Indicators ({region}" + (f" - {selected_city})" if selected_city != "None" else ")"),
+    xaxis_title="Date",
+    yaxis_title="Percent (%)",
+    hovermode="x unified"
+)
+
+st.plotly_chart(fig, use_container_width=True)
