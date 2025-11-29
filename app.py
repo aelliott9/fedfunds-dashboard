@@ -308,12 +308,12 @@ region = st.selectbox("Select region:", ["National", "Missouri", "Kansas"], key 
 
 city_map = {
     "Missouri": {
-        "St. Louis Metro": "STLMUR",  # replace with exact FRED code
-        "Kansas City Metro (MO side)": "KCMOMUR"
+        "St. Louis Metro": "STLMSUR",  # replace with exact FRED code
+        "Kansas City Metro (MO side)": "KCAMSUR"
     },
     "Kansas": {
-        "Kansas City Metro (KS side)": "KCKSUR",
-        "Wichita, KS": "WICHUR"
+        "Kansas City Metro (KS side)": "KCAMSUR",
+        "Wichita, KS": "WICHMSUR"
     }
 }
 
