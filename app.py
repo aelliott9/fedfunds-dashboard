@@ -18,7 +18,7 @@ st.title("Federal Funds Rate (FEDFUNDS) — Historical")
 fred_key = st.secrets["FRED"]["Key"]
 fred = Fred(api_key=fred_key)
 
-def get_all_fred_metadata_via_search(api_key, limit=500000):
+def get_all_fred_metadata(api_key, limit=200000):
     base = "https://api.stlouisfed.org/fred/series/search"
     all_rows = []
     offset = 0
@@ -27,7 +27,8 @@ def get_all_fred_metadata_via_search(api_key, limit=500000):
     while offset < limit:
         url = (
             f"{base}?api_key={api_key}"
-            f"&search_text="   # returns *all* series when empty
+            f"&search_text="
+            f"&search_type=full_text"
             f"&file_type=json"
             f"&limit={page_size}"
             f"&offset={offset}"
@@ -35,6 +36,7 @@ def get_all_fred_metadata_via_search(api_key, limit=500000):
 
         r = requests.get(url).json()
 
+        # Stop if no content returned
         if "seriess" not in r or len(r["seriess"]) == 0:
             break
 
@@ -42,6 +44,7 @@ def get_all_fred_metadata_via_search(api_key, limit=500000):
         offset += page_size
 
     return pd.DataFrame(all_rows)
+
 
 # Date selector
 start_default = "2000-01-01"
