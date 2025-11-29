@@ -17,6 +17,51 @@ st.title("Federal Funds Rate (FEDFUNDS) — Historical")
 fred_key = st.secrets["FRED"]["Key"]
 fred = Fred(api_key=fred_key)
 
+import requests
+
+# Pull full FRED metadata (all series in all categories)
+def get_all_fred_metadata(api_key):
+    base = "https://api.stlouisfed.org/fred"
+    all_data = []
+
+    # Start from the root category
+    root_id = 0
+    categories_to_visit = [root_id]
+    visited = set()
+
+    while categories_to_visit:
+        cat = categories_to_visit.pop()
+        if cat in visited:
+            continue
+        visited.add(cat)
+
+        # Get series in this category
+        series_url = f"{base}/category/series?category_id={cat}&api_key={api_key}&file_type=json"
+        r = requests.get(series_url).json()
+
+        if "seriess" in r:
+            for s in r["seriess"]:
+                all_data.append({
+                    "id": s.get("id"),
+                    "title": s.get("title"),
+                    "units": s.get("units"),
+                    "frequency": s.get("frequency"),
+                    "seasonal_adjustment": s.get("seasonal_adjustment"),
+                    "last_updated": s.get("last_updated"),
+                    "notes": s.get("notes")
+                })
+
+        # Traverse child categories
+        children_url = f"{base}/category/children?category_id={cat}&api_key={api_key}&file_type=json"
+        r = requests.get(children_url).json()
+
+        if "categories" in r:
+            for c in r["categories"]:
+                categories_to_visit.append(c["id"])
+
+    df_meta = pd.DataFrame(all_data)
+    return df_meta
+
 # Date selector
 start_default = "2000-01-01"
 end_default = date.today().isoformat()
@@ -89,3 +134,24 @@ csv = df.to_csv(index=False)
 st.download_button("Download CSV", csv, file_name="fedfunds.csv", mime="text/csv")
 
 st.subheader("TEST")
+
+st.subheader("FRED Metadata Catalogue")
+
+if st.button("Download FRED Metadata"):
+    with st.spinner("Retrieving full FRED metadata (this may take ~20–40 seconds)..."):
+        df_meta = get_all_fred_metadata(fred_key)
+
+    st.success(f"Retrieved {len(df_meta):,} series.")
+
+    # Show preview
+    st.write(df_meta.head())
+
+    # CSV download
+    csv_meta = df_meta.to_csv(index=False)
+    st.download_button(
+        "Download FRED Metadata CSV",
+        csv_meta,
+        file_name="fred_metadata_catalogue.csv",
+        mime="text/csv"
+    )
+
