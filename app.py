@@ -314,18 +314,17 @@ series_map = {
         "GDP Growth %": "GDPC1",
         "Inflation %": "CPIAUCNS"
     },
-    "Missouri": {
-        "Unemployment Rate": "MISSUR",
-        "Employment Level": "MOEMP",
-        "Nonfarm Payrolls": "MOPOPN"        
-    },
+    # "Missouri": {
+    #     "Unemployment Rate": "MISSUR",
+    #     "Employment Level": "MOEMP",
+    #     "Nonfarm Payrolls": "MOPOPN"        
+    # },
     "Kansas": {
         "Unemployment Rate": "KNSUR",
-        "Employment Level": "KSEMP",
-        "Nonfarm Payrolls": "KSPPOP",
         "Gross Domestic Product: All Industry Total": "KSNQGSP",
         "All-Transactions House Price Index": "KSSTHPI",
-        "Real Median Household Income": "MEHOINUSKSA672N"
+        "Real Median Household Income": "MEHOINUSKSA672N",
+        "SNAP Benefits Recipients in Kansas": "BRKS20M647NCEN"
     }
 }
 
