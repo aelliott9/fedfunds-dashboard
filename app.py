@@ -121,7 +121,7 @@ df = df.sort_values("date")
 
 
 # Merge on date
-df = pd.merge(df_fed, df_unemp, on="date", how="outer").sort_values("date")
+# df = pd.merge(df_fed, df_unemp, on="date", how="outer").sort_values("date")
 
 # Add Federal Funds Rate line
 fig.add_trace(go.Scatter(
