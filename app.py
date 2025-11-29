@@ -320,11 +320,21 @@ series_map = {
     #     "Nonfarm Payrolls": "MOPOPN"        
     # },
     "Kansas": {
-        "Unemployment Rate": "KNSUR",
-        "Gross Domestic Product: All Industry Total": "KSNQGSP",
-        "All-Transactions House Price Index": "KSSTHPI",
-        "Real Median Household Income": "MEHOINUSKSA672N",
-        "SNAP Benefits Recipients in Kansas": "BRKS20M647NCEN"
+    "Unemployment Rate": "KNSUR",  # Monthly, Seasonally Adjusted
+    "State Minimum Wage Rate": "KSWAGDP",  # Annual, Not Seasonally Adjusted
+    "Resident Population": "KSPOP",  # Annual, Not Seasonally Adjusted
+    "Gross Domestic Product: All Industry Total (Quarterly, SAAR)": "KSNQGSP",
+    "All-Transactions House Price Index": "KSSTHPI",
+    "Real Median Household Income": "MEHOINUSKSA672N",
+    "Per Capita Personal Income": "KSPCPI",
+    "Median Household Income": "KSMHINCOME",
+    "Labor Force Participation Rate": "KSLFPR",
+    "SNAP Benefits Recipients": "BRKS20M647NCEN",
+    "Initial Claims": "KSICLAIMS",
+    "All Employees: Manufacturing": "KSEMPMAN",
+    "New Private Housing Units Authorized by Building Permits": "KSBPUNIT",
+    "Housing Inventory: Median Listing Price": "KSHOMEPRICE",
+    "Homeownership Rate": "KSHOMEOWN"
     }
 }
 
