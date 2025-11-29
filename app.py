@@ -18,32 +18,49 @@ st.title("Federal Funds Rate (FEDFUNDS) — Historical")
 fred_key = st.secrets["FRED"]["Key"]
 fred = Fred(api_key=fred_key)
 
-def get_all_fred_metadata(api_key, limit=200000):
-    base = "https://api.stlouisfed.org/fred/series/search"
-    all_rows = []
-    offset = 0
-    page_size = 1000
+# Pull full FRED metadata (all series in all categories)
+def get_all_fred_metadata(api_key):
+    base = "https://api.stlouisfed.org/fred"
+    all_data = []
 
-    while offset < limit:
-        url = (
-            f"{base}?api_key={api_key}"
-            f"&search_text="
-            f"&search_type=full_text"
-            f"&file_type=json"
-            f"&limit={page_size}"
-            f"&offset={offset}"
-        )
+    # Start from the root category
+    root_id = 0
+    categories_to_visit = [root_id]
+    visited = set()
 
-        r = requests.get(url).json()
+    while categories_to_visit:
+        cat = categories_to_visit.pop()
+        if cat in visited:
+            continue
+        visited.add(cat)
 
-        # Stop if no content returned
-        if "seriess" not in r or len(r["seriess"]) == 0:
-            break
+        # Get series in this category
+        series_url = f"{base}/category/series?category_id={cat}&api_key={api_key}&file_type=json"
+        r = requests.get(series_url).json()
 
-        all_rows.extend(r["seriess"])
-        offset += page_size
+        if "seriess" in r:
+            for s in r["seriess"]:
+                all_data.append({
+                    "id": s.get("id"),
+                    "title": s.get("title"),
+                    "units": s.get("units"),
+                    "frequency": s.get("frequency"),
+                    "seasonal_adjustment": s.get("seasonal_adjustment"),
+                    "last_updated": s.get("last_updated"),
+                    "notes": s.get("notes")
+                })
 
-    return pd.DataFrame(all_rows)
+        # Traverse child categories
+        children_url = f"{base}/category/children?category_id={cat}&api_key={api_key}&file_type=json"
+        r = requests.get(children_url).json()
+
+        if "categories" in r:
+            for c in r["categories"]:
+                categories_to_visit.append(c["id"])
+
+    df_meta = pd.DataFrame(all_data)
+    return df_meta
+
 
 
 # Date selector
