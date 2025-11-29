@@ -7,6 +7,7 @@ import plotly.graph_objects as go
 from datetime import date
 import os
 import requests
+from functools import reduce
 
 # Create figure
 fig = go.Figure()
@@ -345,8 +346,16 @@ selected_series = st.multiselect(
     key='series_selector'
 )
 
+# --- Checkbox for Z-score Standardization ---
+use_zscore = st.checkbox("Normalize using Z-score (standardization)", value=False)
+
 # --- Load Data with error handling ---
 df_list = []
+for var in selected_series:
+    series_id = series_map[region][var]
+    df_temp = load_fred_series(series_id, start.isoformat(), end.isoformat())
+    df_temp.rename(columns={"Value": var}, inplace=True)
+    df_list.append(df_temp)
 failed_series = []
 
 for var in selected_series:
@@ -357,6 +366,16 @@ for var in selected_series:
         df_list.append(df_temp)
     except ValueError as e:
         failed_series.append(f"{var} ({series_id}): {e}")
+
+if use_zscore:
+    df_z = df.copy()
+    for col in df.columns:
+        if col != "date":
+            df_z[col] = (df_z[col] - df_z[col].mean()) / df_z[col].std()
+    df_to_plot = df_z
+else:
+    df_to_plot = df
+
 
 # Notify user about failed series
 if failed_series:
