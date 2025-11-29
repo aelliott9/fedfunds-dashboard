@@ -305,27 +305,10 @@ if start > end:
 
 # --- Region and City Selection ---
 region = st.selectbox("Select region:", ["National", "Missouri", "Kansas"], key = 'region')
+# --- Region Selection ---
+region = st.selectbox("Select region:", ["National", "Missouri", "Kansas"], key='region')
 
-# city_map = {
-#     "Missouri": {
-#         "St. Louis Metro": "STLMSUR",  # replace with exact FRED code
-#         "Kansas City Metro (MO side)": "KCAMSUR"
-#     },
-#     "Kansas": {
-#         "Kansas City Metro (KS side)": "KCAMSUR",
-#         "Wichita, KS": "WICHMSUR"
-#     }
-# }
-
-# selected_city = "None"
-# if region in ["Missouri", "Kansas"]:
-#     selected_city = st.selectbox(
-#         f"Select city/metro area in {region} (optional)",
-#         options=["None"] + list(city_map[region].keys()),
-#         key = 'city_selector'
-#     )
-
-# --- Map Variables to Series IDs ---
+# --- Map Variables to Series IDs (state level) ---
 series_map = {
     "National": {
         "Federal Funds Rate": "FEDFUNDS",
@@ -334,76 +317,61 @@ series_map = {
         "Inflation %": "CPIAUCNS"
     },
     "Missouri": {
-        "Federal Funds Rate": "FEDFUNDS",
         "Unemployment Rate": "MOUR",
-        "GDP Growth %": "GDPC1",
-        "Inflation %": "CPIAUCNS"
+        "Personal Income": "MOINDPRO",
+        "Employment": "MOEMPLOY",
+        "Retail Sales": "MORETAIL",
+        "Manufacturing Output": "MOMANU",
+        "Housing Permits": "MOHOU"
     },
     "Kansas": {
-        "Federal Funds Rate": "FEDFUNDS",
         "Unemployment Rate": "KSUR",
-        "GDP Growth %": "GDPC1",
-        "Inflation %": "CPIAUCNS"
+        "Personal Income": "KSINDPRO",
+        "Employment": "KSEMPLOY",
+        "Retail Sales": "KSRETAIL",
+        "Manufacturing Output": "KSMANU",
+        "Housing Permits": "KSHOU"
     }
 }
 
-# --- Determine unemployment series based on city selection ---
-# if selected_city != "None":
-#     unemp_series = city_map[region][selected_city]
-# else:
-#     unemp_series = series_map[region]["Unemployment Rate"]
-
-# --- Load Data ---
-df_fed = load_fred_series(series_map[region]["Federal Funds Rate"], start.isoformat(), end.isoformat())
-df_unemp = load_fred_series(unemp_series, start.isoformat(), end.isoformat())
-df_unemp.rename(columns={"Value": "Unemployment Rate"}, inplace=True)
-
-df_gdp = load_fred_series(series_map[region]["GDP Growth %"], start.isoformat(), end.isoformat())
-df_gdp.rename(columns={"Value": "Real GDP"}, inplace=True)
-df_gdp["GDP Growth %"] = df_gdp["Real GDP"].pct_change(periods=4) * 100
-
-df_cpi = load_fred_series(series_map[region]["Inflation %"], start.isoformat(), end.isoformat())
-df_cpi.rename(columns={"Value": "CPI"}, inplace=True)
-df_cpi["Inflation %"] = df_cpi["CPI"].pct_change(periods=12) * 100
-
-# --- Merge all series ---
-df = df_fed.rename(columns={"Value": "Federal Funds Rate"})
-df = pd.merge(df, df_unemp, on="date", how="outer")
-df = pd.merge(df, df_gdp[["date", "GDP Growth %"]], on="date", how="outer")
-df = pd.merge(df, df_cpi[["date", "Inflation %"]], on="date", how="outer")
-df = df.sort_values("date")
-
 # --- Interactive Series Selection ---
-series_options = ["Federal Funds Rate", "Unemployment Rate", "GDP Growth %", "Inflation %"]
+series_options = list(series_map[region].keys())
 selected_series = st.multiselect(
     "Select series to display on the chart:",
     options=series_options,
-    default=["Federal Funds Rate", "Unemployment Rate"],
-    key = 'series_selector'
+    default=series_options[:2],  # default first two indicators
+    key='series_selector'
 )
+
+# --- Load Data ---
+df_list = []
+for var in selected_series:
+    series_id = series_map[region][var]
+    df_temp = load_fred_series(series_id, start.isoformat(), end.isoformat())
+    df_temp.rename(columns={"Value": var}, inplace=True)
+    df_list.append(df_temp)
+
+# Merge all selected series on date
+from functools import reduce
+df = reduce(lambda left, right: pd.merge(left, right, on="date", how="outer"), df_list)
+df = df.sort_values("date")
 
 # --- Plot Selected Series ---
 fig = go.Figure()
-colors = {
-    "Federal Funds Rate": "blue",
-    "Unemployment Rate": "red",
-    "GDP Growth %": "green",
-    "Inflation %": "orange"
-}
-
-for series in selected_series:
+colors = ["blue", "red", "green", "orange", "purple", "brown", "pink", "cyan"]
+for i, series in enumerate(selected_series):
     fig.add_trace(go.Scatter(
         x=df["date"],
         y=df[series],
         mode="lines+markers",
         name=series,
-        line=dict(color=colors[series])
+        line=dict(color=colors[i % len(colors)])
     ))
 
 fig.update_layout(
-    title=f"Economic Indicators ({region}" + (f" - {selected_city})" if selected_city != "None" else ")"),
+    title=f"Economic Indicators ({region})",
     xaxis_title="Date",
-    yaxis_title="Percent (%)",
+    yaxis_title="Value",
     hovermode="x unified"
 )
 
