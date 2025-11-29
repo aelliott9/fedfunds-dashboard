@@ -119,6 +119,13 @@ df = pd.merge(df, df_gdp[["date", "GDP Growth %"]], on="date", how="outer")
 df = pd.merge(df, df_cpi[["date", "Inflation %"]], on="date", how="outer")
 df = df.sort_values("date")
 
+# --- Interactive selection ---
+series_options = ["Federal Funds Rate", "Unemployment Rate", "GDP Growth %", "Inflation %"]
+selected_series = st.multiselect(
+    "Select series to display on the chart:",
+    options=series_options,
+    default=["Federal Funds Rate", "Unemployment Rate"]  # default selection
+)
 
 # Merge on date
 # df = pd.merge(df_fed, df_unemp, on="date", how="outer").sort_values("date")
