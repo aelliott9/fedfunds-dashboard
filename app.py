@@ -315,20 +315,17 @@ series_map = {
         "Inflation %": "CPIAUCNS"
     },
     "Missouri": {
-        "Unemployment Rate": "MOUR",
-        "Personal Income": "MOINDPRO",
-        "Employment": "MOEMPLOY",
-        "Retail Sales": "MORETAIL",
-        "Manufacturing Output": "MOMANU",
-        "Housing Permits": "MOHOU"
+        "Unemployment Rate": "MISSUR",
+        "Employment Level": "MOEMP",
+        "Nonfarm Payrolls": "MOPOPN"        
     },
     "Kansas": {
-        "Unemployment Rate": "KSUR",
-        "Personal Income": "KSINDPRO",
-        "Employment": "KSEMPLOY",
-        "Retail Sales": "KSRETAIL",
-        "Manufacturing Output": "KSMANU",
-        "Housing Permits": "KSHOU"
+        "Unemployment Rate": "KNSUR",
+        "Employment Level": "KSEMP",
+        "Nonfarm Payrolls": "KSPPOP",
+        "Gross Domestic Product: All Industry Total": "KSNQGSP",
+        "All-Transactions House Price Index": "KSSTHPI",
+        "Real Median Household Income": "MEHOINUSKSA672N"
     }
 }
 
