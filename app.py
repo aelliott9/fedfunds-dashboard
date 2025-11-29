@@ -320,7 +320,7 @@ series_map = {
     #     "Nonfarm Payrolls": "MOPOPN"        
     # },
     "Kansas": {
-    "Unemployment Rate": "KNSUR",  # Monthly, Seasonally Adjusted
+    "Unemployment Rate": "KSUR",  # Monthly, Seasonally Adjusted
     "State Minimum Wage Rate": "KSWAGDP",  # Annual, Not Seasonally Adjusted
     "Resident Population": "KSPOP",  # Annual, Not Seasonally Adjusted
     "Gross Domestic Product: All Industry Total (Quarterly, SAAR)": "KSNQGSP",
